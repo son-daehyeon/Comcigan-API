@@ -1,114 +1,53 @@
-# Comcigan Api
-[![jitpack badge](https://jitpack.io/v/son-daehyeon/Comcigan-Api.svg)](https://jitpack.io/#son-daehyeon/Comcigan-Api)
+# Comcigan-API
 
-자바에서 [컴시간 알리미](http://xn--s39aj90b0nb2xw6xh.kr/)의 시간표를 파싱하기 위한 라이브러리입니다.
+> 컴시간알리미 시간표 조회 Java 라이브러리
 
-타 라이브러리와 다르게 웹 소스를 기반으로 데이터를 불러오지 않고 JSON을 통해 데이터를 파싱하기 때문에 빠르고 안정적입니다.
+컴시간알리미(comci.net) 서버가 내려주는 JSON 응답을 웹 페이지를 긁지 않고 직접 파싱해 학교 검색, 일과 시간, 학생·교사 시간표를 Java 객체로 돌려주는 라이브러리다. JitPack으로 배포한다. 2023년에 만들었고, 제천고 코딩 동아리의 교사용 시간표 앱 티플 서버가 이 라이브러리를 쓴다.
 
-## 의존성
-### Maven
-```maven
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
+## 주요 기능
+- 학교 이름으로 검색해 학교 코드·이름·지역을 반환
+- 학교별 교시 시작 시각(일과 시간) 조회
+- 학생용: 학년·반 기준 교시·일·주간(월~금) 시간표 조회, 원래 시간표와 달라진 교시는 `isModify`와 원래 수업을 함께 반환
+- 교사용: 교사 목록 조회, 교사별 주간 시간표(과목·학년-반) 조회
 
-<dependency>
-    <groupId>com.github.son-daehyeon</groupId>
-    <artifactId>Comcigan-Api</artifactId>
-    <version>2.0.0</version>
-</dependency>
+## 기술 스택
+| 영역 | 기술 |
+|---|---|
+| 언어 | Java, Gradle 8.0 |
+| 라이브러리 | OkHttp 4.12.0, Gson 2.11.0, Lombok 1.18.34 |
+| 인프라 | JitPack |
+
+## 구조
 ```
-### Gradle
+src/main/java/com/github/son_daehyeon/
+├── ComciganBaseApi.java      학교 검색, 일과 시간, 원본 JSON 요청
+├── student/                  ComciganStudentApi, 학생용 시간표 모델
+├── teacher/                  ComciganTeacherApi, 교사 목록·교사용 시간표 모델
+├── data/School.java          학교 모델
+└── util/                     comci.net 요청, EUC-KR·Base64 인코딩
+```
+
+## 실행
 ```groovy
 repositories {
     maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    implementation 'com.github.son-daehyeon:Comcigan-Api:2.0.0'
+    implementation 'com.github.son-daehyeon:Comcigan-API:2.0.0'
 }
 ```
 
-## API
-아래 코드에서 사용중인 `ComciganApi`는 학생용 API 사용시 `ComciganStudentApi`, 교사용 API 사용시 `ComciganTeacherApi` 사용해주세요.
-
-
-
-### 학교 검색
 ```java
-ComciganApi.searchSchool(String query)
-```
-```
-ComciganApi.searchSchool("서울")
-
-[
-    School(code=20449, name=서울대학교사범대학부설중학교, location=서울),
-    School(code=67524, name=서울문화고등학교, location=서울),
-    ...
-]
+ComciganStudentApi.searchSchool("서울");            // [School(code=20449, name=..., location=서울), ...]
+ComciganStudentApi.getRange(20449);                 // {1=08:35, 2=09:25, ...}
+ComciganStudentApi.getWeeklyTimeTable(20449, 1, 1); // 1학년 1반 월~금 시간표
+ComciganTeacherApi.getTeacherList(20449);           // [Teacher(id=1, name=...), ...]
+ComciganTeacherApi.getWeeklyTimeTable(20449, 1);    // 교사 id 1의 주간 시간표
 ```
 
-### 일과 시간
-```java
-ComciganApi.getRange(int code)
-```
-```
-ComciganApi.searchSchool(20449)
+## 관련 저장소
+- [JCHS-Teacher-Plan-Server](https://github.com/son-daehyeon/JCHS-Teacher-Plan-Server) — 이 라이브러리로 시간표를 불러오는 티플 서버
 
-{
-    1=08:35,
-    2=09:25,
-    ...
-}
-```
-
-### 학생용
-#### 시간표
-```java
-ComciganApi.getWeeklyTimeTable(int code, int grade, int clazz)
-```
-```
-ComciganApi.getWeeklyTimeTable(20449, 1, 1)
-
-[
-    DailyTimeTable(dayOfWeek=MONDAY, timeTable=[
-        PeriodTimeTable(period=1, lecture=국어, teacher=***, isModify=false, original=null),
-        ...
-    ]),
-    ...
-]
-```
-
-### 교사용
-#### 교사 목록
-```java
-ComciganTeacherApi.getTeacherList(int code)
-```
-```
-ComciganTeacherApi.getTeacherList(20449)
-
-[
-    Teacher(id=1, name=***),
-    Teacher(id=2, name=***),
-    ...
-]
-```
-
-#### 시간표
-```java
-ComciganApi.getWeeklyTimeTable(int code, int id)
-```
-```
-ComciganApi.getWeeklyTimeTable(20449, 1)
-
-[
-    DailyTimeTable(dayOfWeek=MONDAY, timeTable=[
-        PeriodTimeTable(period=1, lecture=국어, teacher=***, isModify=false, original=null),
-        ...
-    ]),
-    ...
-]
-```
+---
+2023 · 개인 프로젝트 · 보관됨
